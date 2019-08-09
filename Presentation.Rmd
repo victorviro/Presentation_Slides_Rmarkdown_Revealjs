@@ -1,0 +1,817 @@
+---
+title: "Income prediction: Banking"
+author: ""
+date: "18 July 2019"
+output: 
+  revealjs::revealjs_presentation:
+    css: style.css
+    theme: moon
+    highlight: pygments
+    center: true
+---
+
+
+```{r setup, include=FALSE}
+# We load workspace where all graphics and tables have been generated from scipts
+load("workspace.RData")
+
+library(ggplot2)
+library(ggcorrplot)
+library(data.table)
+library(knitr)
+library(revealjs)
+library(randomForest)
+library(gbm)
+library(rpart)
+library(rpart.plot)
+library(leaps)
+library(grid)
+library(kableExtra)
+library(gridExtra)
+library(plotly)
+attach(data)
+
+```
+## Problem
+
+A bank offers different kind of bank deposits to their clients and want to classify them in order to recommend them a sort of deposit according  to their needs
+
+
+![an image caption Source: Bank.](bank.png)
+
+
+
+## Description dataset
+
+Data has 48678 observations and 15 variables. The rows represent people who live California and the columns some characteristics of them like age. The last col Income tell us if individual gain more than 50k dollards per year.
+
+
+
+
+```{r echo=FALSE, warning=TRUE}
+kable(data[1:4, 1:8]) %>%
+  kable_styling(bootstrap_options= 'striped', font_size = 16)
+
+kable(data[1:4, 9:15]) %>%
+  kable_styling(bootstrap_options= 'striped', font_size = 18)
+
+```
+# Data preproccesing
+
+## Data preproccesing
+
+> Missing values
+
+
+> Outliers detection
+
+
+> Data transformation
+
+
+# Missing values   
+
+
+## Missing values
+
+We remove rows with mising values, we have enough data
+
+```{r echo=FALSE}
+kable(missing_values) %>%
+  kable_styling(bootstrap_options= 'striped', font_size = 20)
+```
+
+# Outliers detection
+
+
+
+
+## Outliers detection
+We do not remove outliers because are relevant to the problem
+
+```{r echo=FALSE}
+par(mfrow=c(2,2))
+hist(Age, col = 'blue')
+boxplot(Age, col = "cadetblue1")
+hist(Hours_Per_Week, col = 'blue')
+boxplot(Hours_Per_Week, col = "cadetblue1")
+```
+
+## Outliers detection
+
+```{r echo=FALSE}
+par(mfrow=c(2,2))
+barplot(table(as.factor(Workclass)),col="coral")
+pie(table(as.factor(Workclass)), radius=1.1)
+barplot(table(as.factor(Occupation)),col="coral")
+pie(table(as.factor(Occupation)), radius=1.1)
+```
+
+
+
+# Data transformation
+
+## Data transformation
+
+$$
+{\large Benefits}={\large Capital Gain-CapitalLoss}
+$$
+
+
+
+
+
+```{r echo=FALSE}
+table_benefits=data[, c('Capital_Gain', 'Capital_Loss', 'Benefits')]
+table=table_benefits[Benefits != 0]
+kable(table[10:18,])
+
+```
+
+## Data transformation
+We modify labels of categorical variable Marital_status
+
+```{r echo=FALSE}
+par(mfrow=c(1,2))
+pie(table(as.factor(data_Marital_status)), radius=0.8, main='Marital_status')
+pie(table(as.factor(Marital_status)), radius=0.8, main='Marital_status')
+
+```
+
+
+# Data visualization
+
+
+## Questions
+
+- **¿Does an individual gain more than 50000 dollars per year?**
+
+
+
+
+
+## Questions
+Does variable Marital_status serve us to predict Income?
+```{r echo=FALSE}
+barplot1
+```
+
+## Data visualization
+
+```{r echo=FALSE}
+scatterplot1
+```
+
+## Data visualization
+
+
+- https://viro91.shinyapps.io/Visual_Data
+
+
+## Data visualization
+
+```{r echo=FALSE}
+Correlation_Matrix
+```
+
+
+# Analysis
+
+## Prepare data
+
+We solve the imbalance class problem using undersampling
+
+
+```{r echo=FALSE}
+par(mfrow=c(1,2))
+pie(table(as.factor(income_old)), radius=1, main='Income')
+pie(table(as.factor(data$Income)), radius=1, main='Income Training')
+
+```
+
+## Training and testing
+
+
+We split data in 3 sets train, validation and test
+
+
+
+## Methods
+
+
+Clasification techniques:
+
+
+- Logistic Regression
+
+
+- Linear and quadratic discriminant analysis
+
+
+- K Nearest Neighbor
+
+
+- Random forest
+
+
+- Boosting
+
+
+- Support Vector Machines
+
+
+- Naive Bayes Classifier
+
+
+
+# Model selection
+
+## Model selection
+
+We apply stepwise selection using all variables.
+
+$$
+{\Large Income \sim .}
+$$
+
+
+
+
+
+##  Model selection
+
+
+```{r echo=FALSE}
+grid.arrange(plot_bic, plot_cp, ncol=2 )
+
+```
+
+##  Model selection
+
+
+```{r echo=FALSE}
+plot(model_selection, scale = 'bic', col='blue')
+
+```
+
+
+##  Model selection
+
+
+
+```{r echo=FALSE}
+grid.arrange(plot_R2, plot_adj, ncol=2 )
+
+```
+
+
+##  Model selection:
+
+
+```{r echo=FALSE}
+plot(model_selection, scale = 'adjr2', col='green')
+
+```
+
+
+
+## Model selection
+
+We decide use 5 variables to train our models because to add  variables do not increase significantly accuracy of model
+
+$$
+{\large Income \sim }{ \ Maritalstatus+Educationnum+Age+Hoursperweek+Benefits}
+$$
+
+## Model selection:
+```{r echo=FALSE}
+
+kable(summary_best_models5[,1:10])  %>%
+  kable_styling(bootstrap_options= 'striped', font_size = 10) 
+kable(summary_best_models5[,25:34])  %>%
+  kable_styling(bootstrap_options= 'striped', font_size = 10) 
+
+```
+
+
+# Logistic Regression
+
+## Logistic Regression
+$$
+{\large Income \sim }{ \ Maritalstatus+Educationnum+Age+Hoursperweek+Benefits}
+$$
+
+
+Training confusion matrix and statistics
+
+
+
+```{r echo=FALSE}
+kable(cf_train_logistic$table)
+kable(indicators_train_logistic)
+
+```
+
+
+## Logistic Regression
+
+Coefficients and significativity of variables 
+
+```{r echo=FALSE}
+kable(coefficients_logisitc)
+
+
+```
+## Logistic Regression: 
+
+
+```{r echo=FALSE}
+plot_significativity_logistic
+```
+
+
+
+## Logistic Regression
+
+Testing confusion matrix and statistics
+
+
+
+
+```{r echo=FALSE}
+kable(cf_test_logistic$table)
+kable(indicators_test_logistic)
+
+
+```
+
+
+## Logistic Regression
+
+
+```{r echo=FALSE}
+roc_LOG
+```
+
+
+
+## Logistic Regression
+
+
+```{r echo=FALSE}
+thresold_plot_logistic
+```
+
+## Logistic Regression
+
+
+
+```{r echo=FALSE}
+kable(threshold_table_logisitic) %>%
+  row_spec(3,1, background = 'darkcyan')
+```
+
+## Logistic Regression
+
+Comparisson models
+
+```{r echo=FALSE}
+kable(data.frame(numb_variables=1:9,anova_logistic$`Resid. Df`, anova_logistic$`Resid. Dev`))
+```
+
+# Discriminant analysis
+
+
+## Linear discriminant analysis
+
+Training confusion matrix and statistics
+
+```{r echo=FALSE}
+kable(cf_train_lda$table)
+kable(indicators_train_lda)
+```
+
+## Linear discriminant analysis
+
+Testing confusion matrix and statistics
+
+```{r echo=FALSE}
+kable(cf_test_lda$table)
+kable(indicators_test_lda)
+```
+
+## Linear discriminant analysis
+
+
+```{r echo=FALSE}
+roc_LDA
+```
+
+## Linear discriminant analysis
+
+
+```{r echo=FALSE}
+thresold_plot_lda
+```
+
+## Linear discriminant analysis
+
+
+```{r echo=FALSE}
+kable(threshold_table_lda) %>%
+  row_spec(4,1, background = 'darkcyan') 
+```
+
+
+
+## Quadratic discriminant analysis
+
+Training confusion matrix and statistics
+
+```{r echo=FALSE}
+kable(cf_train_qda$table)
+kable(indicators_train_qda)
+```
+
+## Quadratic discriminant analysis
+
+Testing confusion matrix and statistics
+
+```{r echo=FALSE}
+kable(cf_test_qda$table)
+kable(indicators_test_qda)
+```
+
+## Quadratic discriminant analysis
+
+
+```{r echo=FALSE}
+roc_QDA
+```
+
+## Quadratic discriminant analysis
+
+
+```{r echo=FALSE}
+thresold_plot_qda
+```
+
+## Quadratic discriminant analysis
+
+
+```{r echo=FALSE}
+kable(threshold_table_qda) %>%
+  row_spec(2,1, background = 'darkcyan')
+```
+
+# K Nearest Neighbor
+
+
+## K Nearest Neighbor
+
+Training confusion matrix and statistics
+
+```{r echo=FALSE}
+kable(cf_train_knn$table)
+kable(indicators_train_knn)
+```
+
+## K Nearest Neighbor
+
+Testing confusion matrix and statistics
+
+```{r echo=FALSE}
+kable(cf_test_knn$table)
+kable(indicators_test_knn)
+```
+
+## K Nearest Neighbor
+
+
+```{r echo=FALSE}
+roc_KNN
+```
+
+## K Nearest Neighbor
+
+
+```{r echo=FALSE}
+k_plot_knn
+```
+
+
+## K Nearest Neighbor
+
+
+```{r echo=FALSE}
+kable(indicators_test_knn_table[1:20,]) %>%
+  row_spec(11,1, background = 'darkcyan')  %>%
+  kable_styling(bootstrap_options= 'striped', font_size = 18)
+```
+
+## K Nearest Neighbor
+
+
+```{r echo=FALSE}
+thresold_plot_knn
+```
+
+## K Nearest Neighbor
+
+```{r echo=FALSE}
+kable(threshold_table_knn) %>%
+  row_spec(3,1, background = 'darkcyan')
+```
+
+# Random forest
+
+
+## Random forest
+
+Training confusion matrix and statistics
+
+```{r echo=FALSE}
+kable(cf_train_rf$table)
+kable(indicators_train_rf)
+```
+
+## Random forest
+
+Testing confusion matrix and statistics
+
+```{r echo=FALSE}
+kable(cf_test_rf$table)
+kable(indicators_test_rf)
+```
+
+
+
+## Random forest
+
+
+```{r echo=FALSE}
+roc_RF
+```
+
+## Random forest
+
+
+```{r echo=FALSE}
+number_trees
+
+```
+
+## Random forest
+
+
+```{r echo=FALSE}
+number_variables_sampled_rf
+
+```
+
+
+## Random forest
+
+
+```{r echo=FALSE}
+thresold_plot_rf
+```
+
+## Random forest
+
+```{r echo=FALSE}
+kable(threshold_table_rf) %>%
+  row_spec(3,1, background = 'darkcyan')
+```
+
+## Random forest
+
+```{r echo=FALSE, fig.height=11, fig.width=16}
+rpart.plot(model_tree, box.palette = 'RdBu', shadow.col = 'gray', nn=TRUE)
+```
+
+
+# Boosting
+
+
+## Boosting
+
+Training confusion matrix and statistics
+
+```{r echo=FALSE}
+kable(cf_train_boost$table)
+kable(indicators_train_boost)
+```
+
+## Boosting
+
+Testing confusion matrix and statistics
+
+```{r echo=FALSE}
+kable(cf_test_boost$table)
+kable(indicators_test_boost)
+```
+
+## Boosting
+
+
+```{r echo=FALSE}
+roc_Boost
+```
+
+## Boosting
+
+
+```{r echo=FALSE}
+plot_influencia_boost
+```
+
+
+
+## Boosting
+
+Eficient iteration's number
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plot_iteration_number_boost=gbm.perf(model_boost, plot.it = T, oobag.curve = F)
+```
+
+## Boosting
+
+
+```{r echo=FALSE}
+thresold_plot_boost
+```
+
+## Boosting
+
+```{r echo=FALSE}
+kable(threshold_table_boost) %>%
+  row_spec(3,1, background = 'darkcyan')
+```
+
+# Support Vector Machines
+
+
+## Support Vector Machines
+
+Training confusion matrix and statistics
+
+```{r echo=FALSE}
+kable(cf_train_svm$table)
+kable(indicators_train_svm)
+```
+
+## Support Vector Machines
+
+Testing confusion matrix and statistics
+
+```{r echo=FALSE}
+
+kable(cf_test_svm$table)
+kable(indicators_test_svm)
+```
+
+## Support Vector Machines
+
+
+```{r echo=FALSE}
+roc_SVM
+```
+
+## Support Vector Machines
+
+Parameter cost
+
+```{r echo=FALSE}
+kable(performance_svm) %>%
+  row_spec(7, background = 'darkcyan')
+```
+
+
+# Naive Bayes clasiffier
+
+
+## Naive Bayes
+
+Training confusion matrix and statistics
+
+```{r echo=FALSE}
+kable(cf_train_nb$table)
+kable(indicators_train_nb)
+```
+
+## Naive Bayes
+
+Testing confusion matrix and statistics
+
+```{r echo=FALSE}
+kable(cf_test_nb$table)
+kable(indicators_test_nb)
+```
+
+## Naive Bayes
+
+
+```{r echo=FALSE}
+roc_NB
+```
+
+## Naive Bayes
+
+
+```{r echo=FALSE}
+kable(top_models_nb)
+```
+
+## Naive Bayes
+
+
+```{r echo=FALSE}
+plot(model_naive_bayes)
+```
+
+# Comparison of methods
+
+
+## Comparison of methods
+
+Curvas  ROC
+
+```{r echo=FALSE}
+
+roc_all_plotly
+```
+
+
+## Conclusions
+
+**Method Boosting is the best apropiated technique to perform the clasification model**
+
+The most influential variables are Marital_status, Education_Num, Benefits... 
+
+
+# Particular case
+
+## Particular case
+
+Now company want to analyze customers who participate in financial market. Company want to recommend different financial products to their clients according to their needs.
+
+## Data preproccesing
+
+We do not remove outliers because are relevant to the problem
+
+```{r echo=FALSE}
+load("workspace_particularcase.RData")
+
+par(mfrow=c(2,2))
+hist(data$Age, col = 'blue')
+boxplot(data$Age, col = "cadetblue1")
+hist(data$Hours_Per_Week, col = 'blue')
+boxplot(data$Hours_Per_Week, col = "cadetblue1")
+
+
+```
+
+## Data preproccesing
+
+We want to analyze only customers who participate at financial market. This is, clients who has gained or loss capital. We filter dataset using this restriction.
+
+
+
+$$
+{Benefits}={Capital Gain}-{Capital Loss~} != {0}
+$$
+
+
+## Model selection
+
+
+Best model using 5 variables
+
+$$
+{\large Income \sim }{ \ Maritalstatus+Educationnum+Relationship+Ocupation+Benefits}
+$$
+
+
+
+## Analysis
+
+What are the most influential variables now?
+
+
+```{r echo=FALSE}
+plot_influencia_boost
+```
+
+
+## Comparisson methods
+
+
+```{r echo=FALSE}
+roc_all_plotly2
+```
+
+
+# END
+
